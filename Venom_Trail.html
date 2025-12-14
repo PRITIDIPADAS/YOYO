@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOKIA DOT RUN - Full Version</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: monospace;
+        }
+        canvas {
+            border: 2px solid #00ff00;
+            image-rendering: pixelated;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            color: #00ff00;
+            text-align: center;
+            font-size: 12px;
+        }
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ff00;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+    </style>
+
+    <!-- Responsive Canvas Scaling -->
+    <style>
+      /* MAKKO_RESPONSIVE_SCALING */
+      /* Flexible browser-zoom-like scaling using JavaScript */
+      body {
+        overflow: visible;
+      }
+    </style>
+    <script>
+      (function() {
+        // Cache DOM elements to avoid repeated queries
+        let container = null;
+        let canvas = null;
+        let canvasWidth = 1920;
+        let canvasHeight = 1080;
+
+        function initializeElements() {
+          container = document.querySelector('.container') || document.querySelector('body > div') || document.body;
+          canvas = document.querySelector('canvas');
+
+          if (canvas) {
+            canvasWidth = parseInt(canvas.getAttribute('width') || canvas.width || 1920);
+            canvasHeight = parseInt(canvas.getAttribute('height') || canvas.height || 1080);
+          }
+        }
+
+        function applyResponsiveScaling() {
+          if (!canvas) return;
+
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+
+          // Calculate the total content height (container + all additional elements)
+          const containerHeight = container.offsetHeight || canvasHeight;
+
+          // Calculate additional height from elements outside the scaled container (e.g., hint divs)
+          // Use for loop for better performance than Array.from + forEach
+          let additionalHeight = 0;
+          const bodyChildren = document.body.children;
+          for (let i = 0; i < bodyChildren.length; i++) {
+            const child = bodyChildren[i];
+            // Skip the container itself and script tags
+            if (child !== container && child.tagName !== 'SCRIPT') {
+              additionalHeight += child.offsetHeight || 0;
+            }
+          }
+
+          // Total height includes container (topbar + gameCanvas) + hint div + any other elements
+          const totalContentHeight = containerHeight + additionalHeight;
+
+          // Calculate scale for both dimensions based on total content
+          const scaleX = viewportWidth / canvasWidth;
+          const scaleY = viewportHeight / totalContentHeight;
+
+          // Use the smaller scale to ensure all content fits in both dimensions
+          const scale = Math.min(scaleX, scaleY, 1); // Never scale up, max 1:1
+
+          // Only apply scaling if needed (scale < 1)
+          if (scale < 1) {
+            // Apply transform with top center origin
+            container.style.transform = 'scale(' + scale + ')';
+            container.style.transformOrigin = 'top center';
+
+            // Center horizontally only
+            document.body.style.display = 'flex';
+            document.body.style.justifyContent = 'center';
+          } else {
+            container.style.transform = '';
+            container.style.transformOrigin = '';
+            document.body.style.display = '';
+            document.body.style.justifyContent = '';
+          }
+        }
+
+        // Debounced resize handler for better performance
+        let resizeTimeout;
+        function handleResize() {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(applyResponsiveScaling, 16); // ~60fps
+        }
+
+        // Initialize and apply scaling after canvas is loaded
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            initializeElements();
+            applyResponsiveScaling();
+          });
+        } else {
+          initializeElements();
+          applyResponsiveScaling();
+        }
+
+        // Reapply on window resize with debouncing
+        window.addEventListener('resize', handleResize);
+      })();
+    </script>
+</head>
+<body>
+    <canvas id="game"></canvas>
+    <div class="controls">TAP/CLICK or SPACE to jump</div>
+    <script>
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");canvas.width=300,canvas.height=500;let gameState="START",score=0,highScore=0,frameCount=0,currentSkin=0;const dotSkins=[{name:"Classic",color:"#00ff00",shadow:"#00ff00"},{name:"Ocean",color:"#00aaff",shadow:"#00aaff"},{name:"Fire",color:"#ff3333",shadow:"#ff3333"},{name:"Sun",color:"#ffff00",shadow:"#ffff00"},{name:"Galaxy",color:"#aa00ff",shadow:"#aa00ff"},{name:"Ghost",color:"#ffffff",shadow:"#ffffff"}];let player={x:150,y:250,width:4,height:4,velocity:0,gravity:.2,jumpPower:-4,alive:!0,animation:"idle",skin:dotSkins[0]},startButton={x:75,y:280,width:150,height:40,text:"START"},restartButton={x:75,y:340,width:150,height:40,text:"RETRY"},skinsButton={x:75,y:340,width:150,height:40,text:"SKINS"},backButton={x:10,y:10,width:60,height:30,text:"BACK"},obstacles=[],obstaclesEnabled=!1,obstacleSpawnTimer=0;function handleInput(){if("PLAYING"===gameState&&player.alive)player.velocity=player.jumpPower,playJumpSound();else if("START"===gameState)isMouseOverButton(startButton)?startGame():isMouseOverButton(skinsButton)&&(gameState="SKINS",playMenuSound());else if("GAMEOVER"===gameState)isMouseOverButton(restartButton)&&startGame();else if("SKINS"===gameState){isMouseOverButton(backButton)&&(gameState="START",playMenuSound());for(let t=0;t<dotSkins.length;t++){let e=40+t%3*80,a=150+80*Math.floor(t/3);mouseX>=e&&mouseX<=e+60&&mouseY>=a&&mouseY<=a+60&&(player.skin=dotSkins[t],currentSkin=t,playMenuSound())}}}let mouseX=0,mouseY=0;function isMouseOverButton(t){return mouseX>=t.x&&mouseX<=t.x+t.width&&mouseY>=t.y&&mouseY<=t.y+t.height}function startGame(){gameState="PLAYING",score=0,frameCount=0,player.y=250,player.velocity=0,player.alive=!0,player.animation="idle",obstacles=[],obstacleSpawnTimer=0}function gameOver(){gameState="GAMEOVER",player.alive=!1,player.animation="death",score>highScore&&(highScore=score),playDeathSound()}function spawnObstacle(){obstaclesEnabled&&(obstacleSpawnTimer++,obstacleSpawnTimer>120&&(obstacles.push({x:canvas.width,y:Math.random()*(canvas.height-100)+50,width:4,height:60+40*Math.random(),speed:2}),obstacleSpawnTimer=0))}function updateObstacles(){for(let t=obstacles.length-1;t>=0;t--)obstacles[t].x-=obstacles[t].speed,obstacles[t].x+obstacles[t].width<0?obstacles.splice(t,1):player.x<obstacles[t].x+obstacles[t].width&&player.x+player.width>obstacles[t].x&&player.y<obstacles[t].y+obstacles[t].height&&player.y+player.height>obstacles[t].y&&gameOver()}function toggleObstacles(){obstaclesEnabled=!obstaclesEnabled}function update(){"PLAYING"===gameState&&player.alive&&(player.velocity+=player.gravity,player.y+=player.velocity,player.velocity<-1?player.animation="jump":player.velocity>1?player.animation="float":player.animation="idle",(player.y<=0||player.y>=canvas.height-player.height)&&gameOver(),spawnObstacle(),updateObstacles(),frameCount++,frameCount%60==0&&score++)}function drawNokiaBackground(){ctx.fillStyle="#000000",ctx.fillRect(0,0,canvas.width,canvas.height),ctx.strokeStyle="rgba(0, 255, 0, 0.05)",ctx.lineWidth=1;for(let t=0;t<canvas.height;t+=2)ctx.beginPath(),ctx.moveTo(0,t),ctx.lineTo(canvas.width,t),ctx.stroke()}function drawMenuBackground(){ctx.fillStyle="#000000",ctx.fillRect(0,0,canvas.width,canvas.height),ctx.strokeStyle="rgba(0, 255, 0, 0.03)",ctx.lineWidth=1;for(let t=-canvas.height;t<canvas.width;t+=20)ctx.beginPath(),ctx.moveTo(t,0),ctx.lineTo(t+canvas.height,canvas.height),ctx.stroke()}function drawDot(){if(ctx.save(),ctx.shadowBlur=player.alive?10:5,ctx.shadowColor=player.alive?player.skin.shadow:"#ff0000",ctx.fillStyle=player.alive?player.skin.color:"#ff0000","death"===player.animation)Math.floor(frameCount/5)%2==0&&ctx.fillRect(player.x,player.y,player.width,player.height);else{let t=player.height;"idle"===player.animation&&(t=player.height+1*Math.sin(.05*frameCount)),ctx.fillRect(player.x-t/2,player.y-t/2,t,t)}ctx.restore()}function drawObstacles(){ctx.save(),ctx.fillStyle="#00ff00",ctx.shadowBlur=5,ctx.shadowColor="#00ff00",obstacles.forEach(t=>{ctx.fillRect(t.x,t.y,t.width,t.height)}),ctx.restore()}function drawText(t,e,a,n=16,o=!1){ctx.save(),ctx.font=`${o?"bold":"normal"} ${n}px monospace`,ctx.fillStyle="#00ff00",ctx.textAlign="center",ctx.shadowBlur=5,ctx.shadowColor="#00ff00",ctx.fillText(t,e,a),ctx.restore()}function drawButton(t){ctx.save(),ctx.strokeStyle="#00ff00",ctx.lineWidth=2,ctx.strokeRect(t.x,t.y,t.width,t.height),ctx.font="bold 14px monospace",ctx.fillStyle="#00ff00",ctx.textAlign="center",ctx.fillText(t.text,t.x+t.width/2,t.y+t.height/2+5),isMouseOverButton(t)&&(ctx.fillStyle="rgba(0, 255, 0, 0.1)",ctx.fillRect(t.x,t.y,t.width,t.height)),ctx.restore()}function drawStartScreen(){drawNokiaBackground(),drawText("NOKIA DOT RUN",canvas.width/2,120,24,!0),drawText("Keep the dot alive!",canvas.width/2,170),drawText("Tap to rise, avoid borders",canvas.width/2,195),drawButton(startButton),drawButton(skinsButton)}function drawGameScreen(){drawDot(),drawObstacles(),drawText(`SCORE: ${score}`,canvas.width/2,30),obstaclesEnabled&&drawText("OBSTACLES ON",canvas.width/2,50,10)}function drawGameOverScreen(){drawNokiaBackground(),drawDot(),drawText("GAME OVER",canvas.width/2,150,24,!0),drawText(`SCORE: ${score}`,canvas.width/2,200),drawText(`HIGH: ${highScore}`,canvas.width/2,225),drawButton(restartButton)}function drawSkinsScreen(){drawMenuBackground(),drawText("SELECT SKIN",canvas.width/2,60,20,!0),drawButton(backButton);for(let t=0;t<dotSkins.length;t++){let e=40+t%3*80,a=150+80*Math.floor(t/3);ctx.save(),ctx.fillStyle=dotSkins[t].color,ctx.shadowBlur=8,ctx.shadowColor=dotSkins[t].shadow,ctx.fillRect(e+25,a+20,6,6),ctx.restore(),t===currentSkin&&(ctx.strokeStyle="#00ff00",ctx.lineWidth=2,ctx.strokeRect(e,a,60,60)),drawText(dotSkins[t].name,e+30,a+50,10)}}function draw(){"START"===gameState?drawStartScreen():"PLAYING"===gameState?drawGameScreen():"GAMEOVER"===gameState?drawGameOverScreen():"SKINS"===gameState&&drawSkinsScreen()}function playJumpSound(){const t=new(window.AudioContext||window.webkitAudioContext),e=t.createOscillator(),a=t.createGain();e.connect(a),a.connect(t.destination),e.frequency.value=800,e.type="square",a.gain.value=.1,e.start(),e.stop(t.currentTime+.05)}function playDeathSound(){const t=new(window.AudioContext||window.webkitAudioContext),e=t.createOscillator(),a=t.createGain();e.connect(a),a.connect(t.destination),e.frequency.value=200,e.type="square",a.gain.value=.1,e.start(),e.stop(t.currentTime+.15)}function playMenuSound(){const t=new(window.AudioContext||window.webkitAudioContext),e=t.createOscillator(),a=t.createGain();e.connect(a),a.connect(t.destination),e.frequency.value=600,e.type="square",a.gain.value=.05,e.start(),e.stop(t.currentTime+.03)}function gameLoop(){update(),draw(),requestAnimationFrame(gameLoop)}canvas.addEventListener("click",handleInput),canvas.addEventListener("touchstart",t=>{t.preventDefault(),handleInput()}),document.addEventListener("keydown",t=>{"Space"===t.code&&(t.preventDefault(),handleInput())}),canvas.addEventListener("mousemove",t=>{const e=canvas.getBoundingClientRect();mouseX=t.clientX-e.left,mouseY=t.clientY-e.top}),document.addEventListener("keydown",t=>{"o"!==t.key&&"O"!==t.key||toggleObstacles()}),gameLoop();
+</script>
+</body>
+</html>
